@@ -56,7 +56,7 @@ You can also just ask Claude to "grade", "audit", "score", or "make a report car
 Claude Code skills live in `~/.claude/skills/`. Clone this repo into a folder named after the skill:
 
 ```bash
-git clone https://github.com/<your-username>/codebase-grader.git ~/.claude/skills/codebase-grader
+git clone https://github.com/josephg29/gradeskill.git ~/.claude/skills/codebase-grader
 ```
 
 Then restart Claude Code (or start a new session) and run `/grade code` in any project.

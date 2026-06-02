@@ -1,6 +1,9 @@
 # macOS
 .DS_Store
 
+# Installed skill bundles (not part of this skill)
+.agents/
+
 # Generated grade reports
 grade-report-*.html
 grade-loop-summary-*.html
@@ -10,3 +13,6 @@ grade-loop-summary-*.html
 *~
 .idea/
 .vscode/
+
+# skills CLI lockfile
+skills-lock.json

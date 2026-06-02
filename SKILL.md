@@ -16,6 +16,7 @@ The user invokes this skill with commands like:
 /grade <category> revise       → grade, then fix issues in one pass
 /grade <category> loop         → grade → fix → regrade, repeat until the score plateaus (max 5 rounds)
 /grade <category> loop <N>     → same as loop, but capped at N rounds
+/grade self-test               → verify the skill install is healthy (no project graded)
 ```
 
 Categories:
@@ -27,6 +28,8 @@ Categories:
 
 If the user types just `/grade` with no category, ask which category they want.
 
+If the user types `/grade self-test`, do not grade anything — run the install check described in **Self-test** below and report the result.
+
 ## How to parse the command
 
 Read the full command string. Extract:
@@ -37,19 +40,22 @@ If the modifier is `loop` without a number, default to a max of 5 rounds with a 
 
 ## Step 1: Detect the project context
 
-Before grading, briefly inspect the repo to understand what you're looking at:
+Before grading, figure out what you're looking at and — for `ui`/`ux` — how to run it. Use the bundled detector instead of assuming `npm`:
 
 ```bash
-ls -la
-cat package.json 2>/dev/null || cat pyproject.toml 2>/dev/null || cat Cargo.toml 2>/dev/null
+bash scripts/detect-project.sh .
 ```
 
-Identify:
+It prints `STACK`, `PACKAGE_MANAGER`, `DEV_COMMAND`, `DEV_SCRIPT`, `HAS_DOCKER`, and `RUNNABLE`. It understands npm / pnpm / yarn / bun (via lockfiles and the `packageManager` field), Python (Django / FastAPI / Flask), Rust, Go, and plain static sites. **Use the reported `DEV_COMMAND` — do not hardcode `npm run dev`.**
+
+Then look a little deeper yourself:
 - Framework (React, Vue, SvelteKit, Next.js, Django, FastAPI, etc.)
-- Whether there's a runnable dev server (look for `dev`, `start`, `serve` scripts)
 - Project size (rough file count)
+- Anything that blocks running it: required `.env` files, auth walls, a database dependency, a monorepo with the app in a sub-package, a non-default port.
 
 This shapes which rubric criteria apply. A static landing page isn't graded the same as a full-stack app.
+
+**If the app can't be run** (`RUNNABLE=no`, missing env, Docker-only, auth-gated with no test credentials): do not fake it. Tell the user exactly what's blocking, ask for what you need (a start command, credentials, an `.env`), and either grade the categories that don't require a running app (`backend`, `code`) or stop and wait. Never grade `ui`/`ux` from source alone — say so explicitly.
 
 ## Step 2: Grade
 
@@ -70,39 +76,28 @@ UI grading is purely visual. **You must take screenshots of the actual rendered 
 
 **Setup:**
 
-1. Start the dev server in the background:
+1. Start the dev server in the background using the `DEV_COMMAND` from Step 1 (not a hardcoded `npm run dev`):
    ```bash
-   npm run dev > /tmp/devserver.log 2>&1 &
+   <DEV_COMMAND> > /tmp/devserver.log 2>&1 &
    ```
-   Wait 5-10 seconds, then check the log to confirm the port.
+   Wait 5-10 seconds, then read `/tmp/devserver.log` to confirm the **actual port** — frameworks pick different defaults (Next 3000, Vite 5173, SvelteKit 5173, Django 8000, etc.) and may auto-increment if the port is taken. Use the port the log reports, not an assumed one.
 
-2. Install Playwright if not present:
+2. Install Playwright if not present (the bundled scripts use the Node build):
    ```bash
-   npx playwright install chromium --with-deps 2>/dev/null || pip install playwright && playwright install chromium
+   npx --yes playwright install chromium --with-deps
    ```
 
-3. Take screenshots at multiple viewport sizes. Use this Playwright script (write it to `/tmp/screenshot.js`):
-   ```javascript
-   const { chromium } = require('playwright');
-   (async () => {
-     const browser = await chromium.launch();
-     const url = process.argv[2] || 'http://localhost:3000';
-     const viewports = [
-       { name: 'desktop', width: 1440, height: 900 },
-       { name: 'tablet', width: 768, height: 1024 },
-       { name: 'mobile', width: 375, height: 812 }
-     ];
-     for (const vp of viewports) {
-       const page = await browser.newPage({ viewport: vp });
-       await page.goto(url, { waitUntil: 'networkidle' });
-       await page.screenshot({ path: `/tmp/grade-ui-${vp.name}.png`, fullPage: true });
-     }
-     await browser.close();
-   })();
+3. Take screenshots with the bundled script — no need to re-write it each run:
+   ```bash
+   node scripts/screenshot-ui.js http://localhost:<port> /tmp/grade-ui "/,/dashboard,/settings"
    ```
-   Run: `node /tmp/screenshot.js http://localhost:<port>`
+   - Arg 1: base URL (use the confirmed port)
+   - Arg 2: output dir (default `/tmp/grade-ui`)
+   - Arg 3: comma-separated routes to capture (default `/`)
 
-4. If the app has multiple routes (dashboard, settings, etc.), grab screenshots of each major page.
+   It captures each route at desktop (1440×900), tablet (768×1024), and mobile (375×812) and prints a JSON manifest of what was captured and what failed. Capture every major route you found in Step 1.
+
+4. If the script reports `captured: []` (nothing rendered), the server isn't actually up — re-check the log and port before grading. Do not grade `ui` without real screenshots.
 
 **Grade each of the 6 UI aspects** from `references/rubric-ui.md` using your vision capability on the screenshots:
 Visual Hierarchy · Typography · Color & Contrast · Spacing & Layout · Consistency · Polish & Detail
@@ -131,39 +126,33 @@ File & Folder Structure · Naming · Duplication · Complexity · Hygiene · Tes
 
 UX grading requires **actually using the product**. This is the most involved category.
 
-1. Start the dev server (same as UI).
+1. Start the dev server (same as UI — use the detected `DEV_COMMAND` and confirm the port).
 
-2. Write a Playwright test script that performs the core user flows. Identify these flows by looking at the README, main routes, and primary CTAs. Examples:
+2. Identify the core user flows by looking at the README, main routes, and primary CTAs. Examples:
    - Landing page → sign up → onboarding
    - Login → main dashboard → primary action
    - Form submission → success/error state
 
-3. The script should record:
-   - Page load times
-   - Whether actions complete successfully
-   - Error states the user might hit
-   - Number of clicks/inputs to complete each flow
-   - Whether feedback is given (loading states, success messages)
-
-   Example skeleton (`/tmp/ux-test.js`):
-   ```javascript
-   const { chromium } = require('playwright');
-   (async () => {
-     const browser = await chromium.launch();
-     const page = await browser.newPage();
-     const results = { flows: [] };
-     
-     const start = Date.now();
-     await page.goto('http://localhost:3000');
-     await page.screenshot({ path: '/tmp/ux-1-landing.png' });
-     results.flows.push({ name: 'landing_to_signup', duration_ms: Date.now() - start });
-     
-     console.log(JSON.stringify(results, null, 2));
-     await browser.close();
-   })();
+3. Describe those flows in a small JSON spec and run them with the bundled harness:
+   ```bash
+   cat > /tmp/flows.json <<'JSON'
+   [
+     { "name": "landing_to_signup", "steps": [
+       { "action": "goto", "path": "/" },
+       { "action": "screenshot" },
+       { "action": "click", "selector": "text=Sign up" },
+       { "action": "fill", "selector": "input[name=email]", "value": "test@example.com" },
+       { "action": "screenshot" }
+     ] }
+   ]
+   JSON
+   node scripts/run-ux-flow.js http://localhost:<port> /tmp/grade-ux /tmp/flows.json
    ```
+   Supported step actions: `goto`, `click`, `fill`, `waitFor`, `screenshot`. With no spec it just loads `/` and screenshots it.
 
-4. Run the script. Inspect the screenshots and results.
+   For each flow the harness records: load/flow duration, whether the flow completed, the step it broke on (if any), console errors, and failed network requests (4xx/5xx). Results land in `/tmp/grade-ux/results.json` plus screenshots.
+
+4. Inspect the screenshots and `results.json`. Grade on the evidence — completion, friction (step count, broken steps), feedback (loading/success states visible in screenshots), and error recovery (what happens on the failed steps).
 
 **Grade each of the 6 UX aspects** from `references/rubric-ux.md`:
 First Impression & Orientation · Task Flow Clarity · Friction · Feedback & State · Discoverability · Error Recovery & Edge Cases
@@ -202,23 +191,24 @@ After all fixes are applied, **do not regrade automatically** unless the command
 
 ## Step 5 (loop only): Run the iteration loop
 
-If the command was `/grade <category> loop [N]`, run this loop:
+If the command was `/grade <category> loop [N]`, run this loop. Save each round's report so progress is auditable:
 
-1. Grade (you've already done round 1)
-2. Apply all fixes from the fix list
-3. **Spawn a fresh subagent** to regrade with no context from previous rounds. This is critical — using your existing context biases the new grade.
+1. Grade (you've already done round 1). Save it as `grade-report-round-1.html`.
+2. Apply all fixes from the fix list (highest priority first).
+3. **Regrade fresh.** Regrading with your existing context biases the score upward — you already "know" what you fixed. Prefer spawning a fresh subagent that has no memory of prior rounds:
 
-   Use the Task tool:
    ```
-   Task: Grade the <category> of the codebase at <repo path> using the codebase-grader skill. 
-   Produce a report card. Return the final grade and score. 
-   You have NO context from previous grading rounds — grade fresh.
+   Task (general-purpose): Grade the <category> of the codebase at <repo path> using the grade skill.
+   Produce a report card. Return the final grade, the numeric score, and the fix list.
+   You have NO context from previous grading rounds — grade fresh from the rubric.
    ```
 
-4. Compare scores. Stop if:
+   **Fallback if the Task tool isn't available** in this environment: re-read the relevant `references/rubric-*.md` from scratch, re-run the detection/screenshot/inspection steps from raw output (don't reuse prior screenshots or notes), and grade against the rubric as if seeing the project for the first time. Note in the summary that the regrade was in-context rather than a fresh subagent.
+
+4. Save round N's report as `grade-report-round-<N>.html`. Compare scores. Stop if:
    - You've hit the max rounds (5 by default, or N if specified)
    - The score moved less than 3 points from the previous round (plateau)
-   - The score went down (regression — flag this clearly)
+   - The score went down (regression — flag this clearly and stop)
 
 5. After the final round, generate a **summary report** showing:
    - Score progression across all rounds (line chart or table)
@@ -236,6 +226,26 @@ Detailed scoring criteria live in `references/`:
 - `rubric-ux.md` — usage flow dimensions
 
 Read the relevant rubric file at the start of each grading run. Do not grade from memory of past runs.
+
+## Helper scripts
+
+Reusable scripts live in `scripts/` so you don't re-improvise them each run:
+- `scripts/detect-project.sh [dir]` — detect stack, package manager, and the right dev command.
+- `scripts/screenshot-ui.js <url> [outDir] [routes]` — capture multi-viewport screenshots for `ui`.
+- `scripts/run-ux-flow.js <url> [outDir] [flows.json]` — drive user flows and record UX signals for `ux`.
+- `scripts/self-test.sh` — verify the install (see below).
+
+Prefer these over writing ad-hoc scripts to `/tmp`. They take arguments, so they adapt per project without editing.
+
+## Self-test
+
+When the user runs `/grade self-test`, run:
+
+```bash
+bash scripts/self-test.sh
+```
+
+It checks that `SKILL.md` frontmatter is valid, the template and all four rubrics exist, the helper scripts are present and executable, the output directory is writable, and reports whether Node and Playwright are available (needed only for `ui`/`ux`). Relay the pass/fail summary. If a check fails, point the user at the specific missing/broken file.
 
 ## Scoring scale
 
@@ -257,6 +267,16 @@ For `everything`, the overall GPA uses: A=4.0, B=3.0, C=2.0, D=1.0, F=0.0, avera
 Be honest in the grading. The point of the report card is to drive real improvement — inflated grades defeat the purpose. If something is a C, call it a C and explain why. Be specific in the feedback ("the button labels in the settings page have inconsistent capitalization" beats "inconsistent styling").
 
 That said, also call out what's actually good. A report card with only criticism isn't useful either.
+
+## Limitations
+
+Be upfront about these — both in conversation and, where relevant, in the report summary:
+
+- **`ui`/`ux` grading requires a runnable local app.** If it can't start, those categories can't be graded — grade `backend`/`code` instead, or ask for what's needed to run it.
+- **Auth-gated apps need test credentials.** Without them, `ux` can only grade the pre-login surface.
+- **Backend grading is inspection-based, not a full security audit or pen-test.** Treat security notes as a first pass, not a clearance.
+- **Scores are opinionated guidance, not ground truth.** The point is to drive concrete improvement, not to produce an authoritative number.
+- **Grades depend on the rubric, not on lint/test results.** For objective build/test/lint signals, run those tools directly.
 
 ## When NOT to use this skill
 

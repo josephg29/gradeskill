@@ -28,16 +28,23 @@ Type one of these in Claude Code:
 /grade ui revise           → grade, then fix the issues in one pass
 /grade code loop           → grade → fix → regrade until the score plateaus (max 5 rounds)
 /grade code loop 3         → same, but capped at 3 rounds
+
+/grade self-test           → verify the skill install is healthy (grades nothing)
 ```
 
 You can also just ask Claude to "grade", "audit", "score", or "make a report card" for your codebase, UI, or backend — the skill triggers on those too.
 
 ## How it works
 
-- **UI / UX grading** renders your app with Playwright and screenshots it at desktop, tablet, and mobile viewports, then grades the actual pixels — not your JSX or CSS.
+- **Project detection** runs first ([`scripts/detect-project.sh`](./scripts/detect-project.sh)) to find your stack and the right dev command — npm, pnpm, yarn, bun, Django, FastAPI, Flask, Cargo, Go, or a static site — instead of assuming `npm run dev`.
+- **UI / UX grading** renders your app with Playwright ([`scripts/screenshot-ui.js`](./scripts/screenshot-ui.js), [`scripts/run-ux-flow.js`](./scripts/run-ux-flow.js)) and grades the actual pixels and flows at desktop, tablet, and mobile viewports — not your JSX or CSS.
 - **Backend / code grading** inspects the repo structure, routes, models, and patterns.
 - Every run scores against a detailed rubric in [`references/`](./references) so grades stay consistent.
-- The **loop** mode spawns a fresh subagent to regrade with no memory of prior rounds, so improvements are measured honestly rather than graded on a curve.
+- The **loop** mode regrades with a fresh subagent (no memory of prior rounds) so improvements are measured honestly rather than graded on a curve, saving each round as `grade-report-round-N.html`.
+
+## Example output
+
+Open [`sample-report.html`](./sample-report.html) in a browser to see the report card the skill produces — overall grade, per-category and per-aspect letter grades, good/improve notes, and a prioritized fix list. The template that renders it lives in [`assets/report-template.html`](./assets/report-template.html).
 
 ### Scoring scale
 
@@ -54,10 +61,16 @@ You can also just ask Claude to "grade", "audit", "score", or "make a report car
 Claude Code skills live in `~/.claude/skills/`. Clone this repo into a folder named after the skill:
 
 ```bash
-git clone https://github.com/josephg29/gradeskill.git ~/.claude/skills/codebase-grader
+git clone https://github.com/josephg29/gradeskill.git ~/.claude/skills/grade
 ```
 
 Then restart Claude Code (or start a new session) and run `/grade code` in any project.
+
+Verify the install at any time:
+
+```bash
+bash ~/.claude/skills/grade/scripts/self-test.sh   # or: /grade self-test
+```
 
 **Requirements:**
 - [Claude Code](https://claude.com/claude-code)
@@ -74,10 +87,23 @@ Then restart Claude Code (or start a new session) and run `/grade code` in any p
 │   ├── rubric-backend.md
 │   ├── rubric-code.md
 │   └── rubric-ux.md
+├── scripts/                 # Reusable helpers (no per-run improvising)
+│   ├── detect-project.sh    # Detect stack + dev command
+│   ├── screenshot-ui.js     # Multi-viewport screenshots for `ui`
+│   ├── run-ux-flow.js       # Drive user flows for `ux`
+│   └── self-test.sh         # Verify the install
 ├── assets/
 │   └── report-template.html # HTML template for the report card
-└── sample-report.html       # Example output
+├── sample-report.html       # Example output
+└── CHANGELOG.md             # Versioned history
 ```
+
+## Limitations
+
+- `ui`/`ux` grading requires a **runnable local app**. If it can't start (missing `.env`, Docker-only, auth wall with no test credentials), those categories are skipped — `backend` and `code` still work from inspection.
+- Auth-gated apps need **test credentials** to grade flows past the login screen.
+- Backend grading is **inspection-based**, not a full security audit or pen-test.
+- Scores are **opinionated guidance**, not absolute truth — the goal is to drive concrete improvement.
 
 ## License
 

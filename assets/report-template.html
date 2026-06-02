@@ -1,0 +1,299 @@
+<!--
+  Codebase Report Card Template
+
+  Placeholders to replace (do a find-and-replace when filling this in):
+    {{TITLE}}              — e.g., "Sentiph UI Report Card" or "Sentiph Full Audit"
+    {{TIMESTAMP}}          — ISO timestamp of when this was generated
+    {{OVERALL_GRADE}}      — Letter grade for overall (use the category grade if single-category mode)
+    {{OVERALL_SCORE}}      — Numeric score 0-100 (or GPA 0.0-4.0 for `everything`)
+    {{OVERALL_LABEL}}      — "Overall" or "GPA" depending on mode
+    {{CATEGORIES_HTML}}    — One <section class="category"> block per category (template at bottom of file)
+    {{SUMMARY}}            — 2-3 sentence high-level summary of the grade
+    {{LOOP_PROGRESSION}}   — Optional: include score timeline if this is a loop summary, else empty string
+
+  CATEGORY BLOCK TEMPLATE (use for each category, replace tokens, then concat into CATEGORIES_HTML):
+    <section class="category">
+      <header class="category-header">
+        <div class="category-grade grade-{{LETTER}}">{{LETTER}}</div>
+        <div class="category-meta">
+          <h2>{{CATEGORY_NAME}}</h2>
+          <div class="score">{{SCORE}}/100</div>
+        </div>
+      </header>
+      <div class="category-body">
+        <div class="block good">
+          <h3>What was good</h3>
+          <ul>{{GOOD_BULLETS}}</ul>
+        </div>
+        <div class="block bad">
+          <h3>What wasn't</h3>
+          <ul>{{BAD_BULLETS}}</ul>
+        </div>
+        <div class="block fixes">
+          <h3>Fixes (prioritized)</h3>
+          <ol>{{FIX_ITEMS}}</ol>
+        </div>
+      </div>
+    </section>
+
+  The grade-{{LETTER}} class controls color. Letters: A, B, C, D, F.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{{TITLE}}</title>
+<style>
+  :root {
+    --bg: #fafaf7;
+    --paper: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --rule: #e5e3dc;
+    --good: #1f7a3f;
+    --bad: #b03a2e;
+    --fix: #1e4a8e;
+    --grade-a: #1f7a3f;
+    --grade-b: #4a8e3d;
+    --grade-c: #c98a1e;
+    --grade-d: #d96b1f;
+    --grade-f: #b03a2e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Iowan Old Style', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  .container {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+  }
+  header.report-header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  .eyebrow {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 42px;
+    margin: 0 0 12px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .timestamp {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .overall {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 32px;
+    align-items: center;
+    padding: 32px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    margin-bottom: 40px;
+  }
+  .overall-grade {
+    font-size: 140px;
+    line-height: 1;
+    font-weight: 600;
+    font-family: 'Iowan Old Style', Georgia, serif;
+  }
+  .overall-info .label {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .overall-info .score {
+    font-size: 32px;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .overall-info .summary {
+    color: var(--ink);
+    font-size: 16px;
+  }
+  .category {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .category-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--rule);
+    background: #fbfbf8;
+  }
+  .category-grade {
+    font-size: 64px;
+    line-height: 1;
+    font-weight: 600;
+    width: 80px;
+    text-align: center;
+  }
+  .category-meta h2 {
+    margin: 0 0 4px;
+    font-size: 24px;
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+  .category-meta .score {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .category-body {
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .category-body .fixes {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--rule);
+    padding-top: 24px;
+  }
+  .block h3 {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .block.good h3 { color: var(--good); }
+  .block.bad h3 { color: var(--bad); }
+  .block.fixes h3 { color: var(--fix); }
+  .block ul, .block ol {
+    margin: 0;
+    padding-left: 20px;
+  }
+  .block li {
+    margin-bottom: 8px;
+  }
+  .block.fixes ol li {
+    padding-left: 4px;
+  }
+  .grade-A { color: var(--grade-a); }
+  .grade-B { color: var(--grade-b); }
+  .grade-C { color: var(--grade-c); }
+  .grade-D { color: var(--grade-d); }
+  .grade-F { color: var(--grade-f); }
+  .progression {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 24px 32px;
+    margin-bottom: 40px;
+  }
+  .progression h3 {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+    color: var(--muted);
+  }
+  .progression-rows {
+    display: grid;
+    gap: 8px;
+  }
+  .progression-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+  }
+  .progression-row .round { color: var(--muted); }
+  .progression-row .bar {
+    height: 8px;
+    background: var(--rule);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .progression-row .bar-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    background: var(--ink);
+  }
+  .progression-row .delta {
+    text-align: right;
+    color: var(--good);
+  }
+  .progression-row .delta.neg { color: var(--bad); }
+  footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  @media (max-width: 640px) {
+    .container { padding: 24px 16px 48px; }
+    h1 { font-size: 28px; }
+    .overall { grid-template-columns: 1fr; text-align: center; }
+    .overall-grade { font-size: 96px; }
+    .category-body { grid-template-columns: 1fr; gap: 24px; }
+    .category-header { padding: 20px; }
+    .category-body { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="report-header">
+    <div class="eyebrow">Codebase Report Card</div>
+    <h1>{{TITLE}}</h1>
+    <div class="timestamp">{{TIMESTAMP}}</div>
+  </header>
+
+  <div class="overall">
+    <div class="overall-grade grade-{{OVERALL_GRADE}}">{{OVERALL_GRADE}}</div>
+    <div class="overall-info">
+      <div class="label">{{OVERALL_LABEL}}</div>
+      <div class="score">{{OVERALL_SCORE}}</div>
+      <div class="summary">{{SUMMARY}}</div>
+    </div>
+  </div>
+
+  {{LOOP_PROGRESSION}}
+
+  {{CATEGORIES_HTML}}
+
+  <footer>
+    Generated by codebase-grader · {{TIMESTAMP}}
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Generated grade reports
+grade-report-*.html
+grade-loop-summary-*.html
+
+# Editor / OS noise
+*.swp
+*~
+.idea/
+.vscode/

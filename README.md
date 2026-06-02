@@ -4,8 +4,6 @@ A [Claude Code](https://claude.com/claude-code) skill that grades your codebase 
 
 Optionally, it can run an **audit → fix → regrade loop** that drives your scores up automatically.
 
-> 📄 **[See a sample report card →](./sample-report.html)** (download and open in a browser)
-
 ## What it grades
 
 | Category      | What it looks at                                                        | How |

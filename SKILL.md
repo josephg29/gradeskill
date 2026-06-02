@@ -1,5 +1,5 @@
 ---
-name: codebase-grader
+name: grade
 description: Grade codebases like a report card with letter grades (A-F), numeric scores, and prioritized fix lists. Triggers on `/grade ui`, `/grade backend`, `/grade code`, `/grade ux`, `/grade everything`, optionally with `revise` or `loop [N]` modifiers. Produces a styled HTML report card and opens it. Use this skill any time the user types a `/grade` command, or asks to "grade", "audit", "review", "score", or "report card" a codebase, frontend, backend, UI, or UX. Also use when the user wants to iteratively improve a codebase based on grading feedback.
 ---
 

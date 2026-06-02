@@ -6,117 +6,126 @@
 <title>Sentiph — Full Audit</title>
 <style>
   :root {
-    --bg: #fafaf7;
-    --paper: #ffffff;
-    --ink: #1a1a1a;
-    --muted: #6b6b6b;
-    --rule: #e5e3dc;
-    --good: #1f7a3f;
-    --improve: #7a4a1f;
-    --fix: #1e4a8e;
-    --grade-a: #1f7a3f;
-    --grade-b: #4a8e3d;
-    --grade-c: #c98a1e;
-    --grade-d: #d96b1f;
-    --grade-f: #b03a2e;
-    --good-bg: #f0faf3;
-    --improve-bg: #fdf5ee;
+    --ink-0: #0a0a0a; --ink-1: #0f0f0e; --ink-2: #141413;
+    --paper: #e9e6df;
+    --rule: rgba(233,230,223,.12); --rule-soft: rgba(233,230,223,.06);
+    --accent: #a8a8a2; --accent-soft: #ffffff; --accent-dim: #6b6862;
+    --grade-a: #4ade80; --grade-b: #a3e635; --grade-c: #facc15; --grade-d: #fb923c; --grade-f: #f87171;
+    --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--ink);
-    font-family: 'Iowan Old Style', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-    font-size: 16px;
-    line-height: 1.6;
-  }
-  .container { max-width: 980px; margin: 0 auto; padding: 48px 32px 80px; }
-  header.report-header { border-bottom: 2px solid var(--ink); padding-bottom: 24px; margin-bottom: 32px; }
-  .eyebrow { font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-  h1 { font-size: 40px; font-weight: 500; letter-spacing: -0.01em; margin-bottom: 12px; }
-  .timestamp { font-family: 'Courier New', monospace; font-size: 12px; color: var(--muted); }
-  .overall { display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: center; padding: 32px; background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; margin-bottom: 40px; }
-  .overall-grade { font-size: 128px; line-height: 1; font-weight: 600; font-family: 'Iowan Old Style', Georgia, serif; }
-  .overall-info .label { font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-  .overall-info .score { font-size: 30px; margin-bottom: 12px; font-weight: 500; }
-  .overall-info .summary { font-size: 16px; color: var(--ink); }
-  .category { background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; margin-bottom: 28px; overflow: hidden; }
-  .category-header { display: flex; align-items: center; gap: 24px; padding: 24px 32px; border-bottom: 1px solid var(--rule); background: #fbfbf8; }
-  .category-grade { font-size: 60px; line-height: 1; font-weight: 600; width: 72px; text-align: center; flex-shrink: 0; }
-  .category-meta h2 { font-size: 22px; font-weight: 500; text-transform: capitalize; margin-bottom: 2px; }
-  .category-meta .score { font-family: 'Courier New', monospace; font-size: 13px; color: var(--muted); }
-  .aspects-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--rule); border-bottom: 1px solid var(--rule); }
-  .aspect-card { background: var(--paper); padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+  html { color-scheme: dark; }
+  body { background: var(--ink-0); color: var(--paper); font-family: var(--mono); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; position: relative; }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -2; background-image: linear-gradient(to right, rgba(233,230,223,.025) 1px, transparent 1px), linear-gradient(to bottom, rgba(233,230,223,.025) 1px, transparent 1px); background-size: 56px 56px; -webkit-mask-image: radial-gradient(ellipse 75% 55% at 50% 0%, #000 30%, transparent 72%); mask-image: radial-gradient(ellipse 75% 55% at 50% 0%, #000 30%, transparent 72%); }
+  body::after { content: ""; position: fixed; inset-inline: 0; top: 0; height: 420px; z-index: -1; background: radial-gradient(ellipse 55% 55% at 50% -12%, rgba(233,230,223,0.07), transparent); pointer-events: none; }
+  .container { max-width: 1040px; margin: 0 auto; padding: 56px 24px 96px; }
+  header.report-header { border-bottom: 1px solid var(--rule); padding-bottom: 24px; margin-bottom: 36px; }
+  .eyebrow { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent-dim); margin-bottom: 14px; }
+  .eyebrow::before { content: "# "; color: var(--accent); }
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 12px; }
+  .timestamp { font-size: 12px; color: var(--accent-dim); }
+  .timestamp::before { content: "$ "; color: var(--accent); }
+  .overall { display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: center; padding: 32px 34px; background: var(--ink-1); border: 1px solid var(--rule); margin-bottom: 36px; }
+  .overall-info .label { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent-dim); margin-bottom: 12px; }
+  .overall-info .summary { font-size: 14.5px; line-height: 1.65; color: rgba(233,230,223,.62); max-width: 60ch; }
+  .overall-score { text-align: right; flex-shrink: 0; }
+  .overall-grade { font-size: 92px; line-height: 0.92; font-weight: 700; letter-spacing: -0.03em; }
+  .overall-score .score { margin-top: 10px; font-size: 14px; color: var(--accent-dim); }
+  .category { background: var(--ink-1); border: 1px solid var(--rule); margin-bottom: 26px; }
+  .category-header { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--rule); background: var(--ink-0); font-size: 12px; color: var(--accent-dim); }
+  .bar-dots { display: flex; gap: 6px; }
+  .bar-dots span { width: 10px; height: 10px; border: 1px solid rgba(233,230,223,.20); display: block; }
+  .category-overall { display: flex; align-items: center; gap: 24px; padding: 24px 30px; }
+  .cat-grade { font-size: 46px; line-height: 1; font-weight: 700; letter-spacing: -0.02em; flex-shrink: 0; }
+  .cat-meta h2 { font-size: 18px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.01em; margin-bottom: 4px; }
+  .cat-meta .score { font-size: 13px; color: var(--accent-dim); }
+  .aspects-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--rule); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .aspect-card { background: var(--ink-1); padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
   .aspect-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .aspect-name { font-size: 13px; font-family: 'Courier New', monospace; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-  .aspect-grade { font-size: 36px; font-weight: 600; line-height: 1; font-family: 'Iowan Old Style', Georgia, serif; flex-shrink: 0; }
-  .aspect-body { display: flex; flex-direction: column; gap: 10px; flex: 1; }
-  .aspect-section { border-radius: 3px; padding: 10px 12px; }
-  .aspect-section.good { background: var(--good-bg); }
-  .aspect-section.improve { background: var(--improve-bg); }
-  .aspect-label { display: block; font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
-  .aspect-section.good .aspect-label { color: var(--good); }
-  .aspect-section.improve .aspect-label { color: var(--improve); }
-  .aspect-section p { font-size: 13.5px; line-height: 1.5; color: var(--ink); }
-  .fixes-section { padding: 22px 32px 26px; }
-  .fixes-section h3 { font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; color: var(--fix); margin-bottom: 14px; }
-  .fixes-section ol { padding-left: 20px; }
-  .fixes-section li { margin-bottom: 8px; font-size: 15px; line-height: 1.5; }
-  .grade-A { color: var(--grade-a); }
-  .grade-B { color: var(--grade-b); }
-  .grade-C { color: var(--grade-c); }
-  .grade-D { color: var(--grade-d); }
-  .grade-F { color: var(--grade-f); }
-  footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--rule); text-align: center; font-family: 'Courier New', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.1em; }
+  .aspect-name { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .aspect-grade { font-size: 22px; font-weight: 700; line-height: 1; flex-shrink: 0; }
+  .aspect-body { display: flex; flex-direction: column; gap: 9px; flex: 1; }
+  .aspect-section { padding: 9px 11px; border-left: 2px solid var(--rule); background: var(--rule-soft); }
+  .aspect-section.good { border-left-color: var(--grade-a); }
+  .aspect-section.improve { border-left-color: var(--grade-d); }
+  .aspect-label { display: block; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; margin-bottom: 5px; }
+  .aspect-section.good .aspect-label { color: var(--grade-a); }
+  .aspect-section.improve .aspect-label { color: var(--grade-d); }
+  .aspect-section p { font-size: 13px; line-height: 1.55; color: rgba(233,230,223,.72); }
+  .aspect-section code, .fixes-section code { font-size: 12px; background: var(--ink-0); border: 1px solid var(--rule); padding: 0.5px 4px; color: var(--paper); }
+  .fixes-section { padding: 22px 30px 26px; }
+  .fixes-section h3 { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; color: var(--accent); margin-bottom: 16px; }
+  .fixes-section ol { list-style: none; counter-reset: fix; }
+  .fixes-section li { counter-increment: fix; position: relative; padding-left: 30px; margin-bottom: 11px; font-size: 13.5px; line-height: 1.6; color: rgba(233,230,223,.78); }
+  .fixes-section li::before { content: counter(fix, decimal-leading-zero); position: absolute; left: 0; top: 0; color: var(--accent); font-weight: 700; }
+  .grade-A { color: var(--grade-a); } .grade-B { color: var(--grade-b); } .grade-C { color: var(--grade-c); } .grade-D { color: var(--grade-d); } .grade-F { color: var(--grade-f); }
+  footer { margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--rule); text-align: center; font-size: 11px; color: var(--accent-dim); letter-spacing: 0.1em; }
+  footer::before { content: "$ "; color: var(--accent); }
   @media (max-width: 760px) {
-    .container { padding: 24px 16px 48px; }
+    .container { padding: 32px 16px 56px; }
     h1 { font-size: 26px; }
-    .overall { grid-template-columns: 1fr; text-align: center; }
-    .overall-grade { font-size: 88px; }
+    .overall { grid-template-columns: 1fr; gap: 20px; }
+    .overall-score { text-align: left; }
+    .overall-grade { font-size: 72px; }
     .aspects-grid { grid-template-columns: repeat(2, 1fr); }
+    .category-overall { padding: 20px; }
+    .fixes-section { padding: 18px 20px 22px; }
   }
   @media (max-width: 480px) { .aspects-grid { grid-template-columns: 1fr; } }
+  @media print {
+    html, body { background: #fff; color: #111; }
+    body::before, body::after { display: none; }
+    .overall, .category { break-inside: avoid; border-color: #ccc; background: #fff; }
+    .aspect-card { break-inside: avoid; background: #fff; }
+    .aspect-section p, .fixes-section li, .overall-info .summary { color: #222; }
+  }
 </style>
 </head>
 <body>
 <div class="container">
   <header class="report-header">
-    <div class="eyebrow">Codebase Report Card</div>
+    <div class="eyebrow">codebase report card</div>
     <h1>Sentiph — Full Audit</h1>
     <div class="timestamp">2026-06-01T14:23:07Z</div>
   </header>
 
   <div class="overall">
-    <div class="overall-grade grade-B">B</div>
     <div class="overall-info">
       <div class="label">GPA</div>
-      <div class="score">2.75 / 4.0</div>
       <div class="summary">Sentiph is a real, functional product. The UI and code structure are the strongest areas; backend security and UX friction are the clearest opportunities for improvement.</div>
+    </div>
+    <div class="overall-score">
+      <div class="overall-grade grade-B">B</div>
+      <div class="score">2.75 / 4.0</div>
     </div>
   </div>
 
   <!-- UI Category -->
   <section class="category">
     <header class="category-header">
-      <div class="category-grade grade-B">B</div>
-      <div class="category-meta">
-        <h2>UI</h2>
-        <div class="score">82/100</div>
-      </div>
+      <div class="bar-dots"><span></span><span></span><span></span></div>
+      <span>ui-report.html</span>
     </header>
+    <div class="category-overall">
+      <div class="cat-grade grade-B">[B]</div>
+      <div class="cat-meta">
+        <h2>ui</h2>
+        <div class="score">82 / 100</div>
+      </div>
+    </div>
     <div class="aspects-grid">
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Visual Hierarchy</span>
-          <span class="aspect-grade grade-A">A</span>
+          <span class="aspect-grade grade-A">[A]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>The dashboard CTA is immediately visible and the page weight guides the eye cleanly from headline to action.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p>The settings page has three elements at identical visual weight with no clear primary action — add size or color contrast to distinguish the save button.</p>
           </div>
         </div>
@@ -124,15 +133,15 @@
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Typography</span>
-          <span class="aspect-grade grade-B">B</span>
+          <span class="aspect-grade grade-B">[B]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>Inter pairs well with the product's utilitarian tone. The h1/h2/body scale is consistent throughout the main flows.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p>Line length on the onboarding copy exceeds 90 characters — cap at ~70ch for comfortable reading. Leading in the data table is also slightly tight.</p>
           </div>
         </div>
@@ -140,15 +149,15 @@
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Color &amp; Contrast</span>
-          <span class="aspect-grade grade-C">C</span>
+          <span class="aspect-grade grade-C">[C]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>The primary blue is used with restraint — only for CTAs and active states. This gives it meaning.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p>Gray muted text on the card backgrounds (#9ca3af on #f9fafb) fails WCAG AA at 3.1:1. Darken to #6b7280 minimum or increase font size to 18px+.</p>
           </div>
         </div>
@@ -156,15 +165,15 @@
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Spacing &amp; Layout</span>
-          <span class="aspect-grade grade-B">B</span>
+          <span class="aspect-grade grade-B">[B]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>The main dashboard grid uses a consistent 8px spacing system. Sections breathe well.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p>The notification drawer has 12px padding on one side and 20px on the other — standardize to the 16px baseline used everywhere else.</p>
           </div>
         </div>
@@ -172,15 +181,15 @@
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Consistency</span>
-          <span class="aspect-grade grade-B">B</span>
+          <span class="aspect-grade grade-B">[B]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>Buttons, inputs, and cards follow the same pattern throughout. Iconography is exclusively from Lucide — no mixing.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p>The modal on <code>/reports</code> uses a filled primary button for cancel and an outlined button for confirm — the reverse of everywhere else. Swap to match the system pattern.</p>
           </div>
         </div>
@@ -188,22 +197,22 @@
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Polish &amp; Detail</span>
-          <span class="aspect-grade grade-C">C</span>
+          <span class="aspect-grade grade-C">[C]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>Hover states exist on all buttons and links. The loading spinner is custom (not a browser default).</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p>The empty state on the reports list is a blank white box. Add an illustration or message so users understand there's nothing yet — and give them a path to create their first report.</p>
           </div>
         </div>
       </div>
     </div>
     <div class="fixes-section">
-      <h3>Fixes (prioritized)</h3>
+      <h3># fixes (prioritized)</h3>
       <ol>
         <li>Fix contrast on muted text — darken #9ca3af to #6b7280 across all card backgrounds to pass WCAG AA.</li>
         <li>Design the empty state on <code>/reports</code> — add a message, illustration, and a "Create report" CTA.</li>
@@ -217,25 +226,29 @@
   <!-- Code Category -->
   <section class="category">
     <header class="category-header">
-      <div class="category-grade grade-B">B</div>
-      <div class="category-meta">
-        <h2>Code</h2>
-        <div class="score">84/100</div>
-      </div>
+      <div class="bar-dots"><span></span><span></span><span></span></div>
+      <span>code-report.html</span>
     </header>
+    <div class="category-overall">
+      <div class="cat-grade grade-B">[B]</div>
+      <div class="cat-meta">
+        <h2>code</h2>
+        <div class="score">84 / 100</div>
+      </div>
+    </div>
     <div class="aspects-grid">
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">File &amp; Folder Structure</span>
-          <span class="aspect-grade grade-A">A</span>
+          <span class="aspect-grade grade-A">[A]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>Clear <code>src/components</code>, <code>src/lib</code>, <code>src/routes</code> split. Related files are colocated — each route has its own folder with component, styles, and tests.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p>Five utility files live directly in <code>src/</code> without a <code>lib/</code> wrapper — move them to keep the root clean.</p>
           </div>
         </div>
@@ -243,15 +256,15 @@
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Naming</span>
-          <span class="aspect-grade grade-A">A</span>
+          <span class="aspect-grade grade-A">[A]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>Components use PascalCase, utilities use camelCase, and CSS modules use kebab-case — all consistent. Names like <code>useReportFilters</code> and <code>ReportSummaryCard</code> are self-documenting.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p><code>src/lib/helpers.ts</code> is a catch-all — its functions span auth, formatting, and date parsing. Break into focused files like <code>dateUtils.ts</code> and <code>formatters.ts</code>.</p>
           </div>
         </div>
@@ -259,15 +272,15 @@
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Duplication</span>
-          <span class="aspect-grade grade-C">C</span>
+          <span class="aspect-grade grade-C">[C]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>API fetch wrappers are centralized in <code>src/lib/api.ts</code> — no duplicated fetch boilerplate across components.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p>The date formatting logic in <code>ReportCard.tsx</code>, <code>ExportModal.tsx</code>, and <code>HistoryTable.tsx</code> is nearly identical. Extract to a shared <code>formatDate()</code> utility.</p>
           </div>
         </div>
@@ -275,15 +288,15 @@
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Complexity</span>
-          <span class="aspect-grade grade-B">B</span>
+          <span class="aspect-grade grade-B">[B]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>Most files are under 200 lines. Functions are focused and short.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p><code>src/routes/dashboard/+page.svelte</code> is 487 lines and mixes data fetching, filtering logic, and rendering. Split into a <code>DashboardFilters</code> component and a <code>useDashboardData</code> hook.</p>
           </div>
         </div>
@@ -291,15 +304,15 @@
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Hygiene</span>
-          <span class="aspect-grade grade-B">B</span>
+          <span class="aspect-grade grade-B">[B]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p><code>.gitignore</code> correctly excludes <code>node_modules</code>, <code>.env</code>, and <code>.svelte-kit</code>. No build artifacts committed.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p>12 <code>console.log</code> calls found in production paths (mostly in <code>src/lib/api.ts</code>). Replace with a logger that gates output on <code>NODE_ENV=development</code>.</p>
           </div>
         </div>
@@ -307,22 +320,22 @@
       <div class="aspect-card">
         <div class="aspect-header">
           <span class="aspect-name">Testing</span>
-          <span class="aspect-grade grade-C">C</span>
+          <span class="aspect-grade grade-C">[C]</span>
         </div>
         <div class="aspect-body">
           <div class="aspect-section good">
-            <span class="aspect-label">Good</span>
+            <span class="aspect-label">+ good</span>
             <p>Vitest is configured and <code>npm test</code> runs cleanly. Utility functions in <code>src/lib/</code> have solid unit test coverage.</p>
           </div>
           <div class="aspect-section improve">
-            <span class="aspect-label">Improve</span>
+            <span class="aspect-label">! improve</span>
             <p>No tests exist for any route component. The core report generation flow has zero test coverage — add at minimum integration tests for the happy path and one error case.</p>
           </div>
         </div>
       </div>
     </div>
     <div class="fixes-section">
-      <h3>Fixes (prioritized)</h3>
+      <h3># fixes (prioritized)</h3>
       <ol>
         <li>Add integration tests for the report generation flow in <code>src/routes/reports/</code>.</li>
         <li>Extract date formatting from <code>ReportCard.tsx</code>, <code>ExportModal.tsx</code>, and <code>HistoryTable.tsx</code> into a shared <code>formatDate()</code> utility.</li>

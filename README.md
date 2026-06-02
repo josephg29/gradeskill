@@ -40,7 +40,8 @@ You can also just ask Claude to "grade", "audit", "score", or "make a report car
 - **UI / UX grading** renders your app with Playwright ([`scripts/screenshot-ui.js`](./scripts/screenshot-ui.js), [`scripts/run-ux-flow.js`](./scripts/run-ux-flow.js)) and grades the actual pixels and flows at desktop, tablet, and mobile viewports — not your JSX or CSS.
 - **Backend / code grading** inspects the repo structure, routes, models, and patterns.
 - Every run scores against a detailed rubric in [`references/`](./references) so grades stay consistent.
-- The **loop** mode regrades with a fresh subagent (no memory of prior rounds) so improvements are measured honestly rather than graded on a curve, saving each round as `grade-report-round-N.html`.
+- Aspects are scored on a fine **0–100** scale internally (letters are just the display rollup), so a real improvement isn't rounded away.
+- The **loop** mode regrades each round as a **noise-aware delta**, not a blind re-roll: it measures the grader's own jitter (the "noise floor"), runs a small **panel** of graders and takes the median, anchors each round to the previous round's per-aspect scores plus a design-intent note, and only reports a rise or a drop when the move clears the noise floor for two rounds — saving each round as `grade-report-round-N.html`. That stops the loop from mistaking a stricter rater for a regression.
 
 ## Example output
 

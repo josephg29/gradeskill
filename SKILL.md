@@ -14,7 +14,7 @@ The user invokes this skill with commands like:
 ```
 /grade <category>              → grade and open the HTML report
 /grade <category> revise       → grade, then fix issues in one pass
-/grade <category> loop         → grade → fix → regrade, repeat until the score plateaus (max 5 rounds)
+/grade <category> loop         → grade → fix → regrade, repeat until improvement stalls below the noise floor (max 5 rounds)
 /grade <category> loop <N>     → same as loop, but capped at N rounds
 /grade self-test               → verify the skill install is healthy (no project graded)
 ```
@@ -36,7 +36,7 @@ Read the full command string. Extract:
 1. **Category** — one of `ui`, `backend`, `code`, `ux`, `everything`
 2. **Modifier** — none, `revise`, `loop`, or `loop <N>`
 
-If the modifier is `loop` without a number, default to a max of 5 rounds with a plateau check (stop early if the score moves less than 3 points between rounds).
+If the modifier is `loop` without a number, default to a max of 5 rounds. **Do not stop on a fixed point threshold** — a hard "< 3 points" trigger is smaller than the grader's own measurement noise (see "The measurement-noise problem" below), so it fires on noise by design. Instead, stop when round-over-round improvement falls below the measured noise floor for two consecutive rounds. The mechanics are in Step 5.
 
 ## Step 1: Detect the project context
 
@@ -64,11 +64,18 @@ Run the grading process for the requested category. Each category has its own ap
 For `everything`, run all four categories. Combine into a single report with an overall GPA at the top.
 
 **For every category, grade each of the 6 aspects individually.** For each aspect you must produce:
-1. A **letter grade** (A/B/C/D/F)
-2. A **"Good:"** note — 1–3 sentences on what specifically worked well
-3. An **"Improve:"** note — 1–3 sentences on what specifically needs work, with file names or screen names
+1. A **fine numeric score 0–100** — this is the real measurement. Score on the full continuous range, not snapped to a letter band. A genuine contrast fix that moves an aspect from 74 to 78 must be recordable as +4; if you only ever emit letter-band numbers (95/82/73/63/45) a real improvement quantizes to zero while ordinary grader jitter flips a whole letter (±6). **Numbers are the signal; letters are display only.**
+2. A **letter grade** (A/B/C/D/F) derived from the numeric score, shown to the user.
+3. A **"Good:"** note — 1–3 sentences on what specifically worked well.
+4. An **"Improve:"** note — 1–3 sentences on what specifically needs work, with file names or screen names.
 
-The overall category grade is derived from the 6 aspect grades (A=95, B=82, C=73, D=63, F=45, averaged).
+The overall category score is the average of the 6 aspect numeric scores. The category letter is derived from that average (see "Scoring scale"). Never average the letter-band stand-ins (95/82/73/…) — average the fine scores you actually assigned.
+
+### Capture design intent (do this on the first grade)
+
+On the **first** grade of a project, write a short **design-intent note** and save it to `references/.grade-intent-<category>.md` in the repo (create the file). It records deliberate choices a cold grader would otherwise re-litigate as failures — e.g. "the dark/light split between the marketing and app shells is intentional", "the pixel/bitmap display font is a brand decision, not a typography defect", "no empty-state illustration on the admin table is acceptable for an internal tool". Keep it to a handful of bullets.
+
+Every subsequent grade (and every spawned grader subagent) **must read this note first** and treat listed choices as in-scope/by-design rather than scoring them down. If you believe an intentional choice is genuinely wrong, say so in the "Improve:" note explicitly — don't silently tank the score for it.
 
 ### Grading UI (looks)
 
@@ -191,31 +198,62 @@ After all fixes are applied, **do not regrade automatically** unless the command
 
 ## Step 5 (loop only): Run the iteration loop
 
-If the command was `/grade <category> loop [N]`, run this loop. Save each round's report so progress is auditable:
+### The measurement-noise problem (read this first)
 
-1. Grade (you've already done round 1). Save it as `grade-report-round-1.html`.
-2. Apply all fixes from the fix list (highest priority first).
-3. **Regrade fresh.** Regrading with your existing context biases the score upward — you already "know" what you fixed. Prefer spawning a fresh subagent that has no memory of prior rounds:
+The naive loop — "fix, then have a fresh cold grader re-roll one absolute score, and compare to last round" — is broken, and it will report that a codebase *got worse* when it actually improved. Here is why, and the loop below is built to defeat each cause:
+
+- **The signal is below the noise floor.** A single cold grader re-judging the whole app from scratch has a per-round jitter of roughly **±6 points** (a different rater redraws every letter boundary). The real per-round improvement from a fix pass is roughly **2–6 points**. One score minus one score can't separate them.
+- **Coarse quantization eats the signal.** Letter bands sit 9–13 points apart; a real fix rarely lifts an aspect a whole letter, so it rounds to zero — while jitter flips a letter and shows ±6. (The fine 0–100 scoring in Step 2 is half the fix; the rest is below.)
+- **Whole-app re-grades resample unchanged surface.** ~95% of the app is identical between rounds, yet a from-scratch grader re-samples all of it and the unchanged part contributes most of the variance, drowning the 1–2 things that actually changed.
+- **No anchors, no intent.** Without pinned exemplars and the design-intent note, each cold grader re-litigates intentional choices and redraws bands, adding more drift.
+
+So: **regrade as a delta against the prior round, with a panel, anchored to prior per-aspect scores and the design-intent note — not as an independent absolute re-roll.**
+
+### Establish the noise floor (once, before round 2)
+
+Before trusting any round-over-round delta, measure the grader's own noise on this project:
+
+1. With the build **unchanged**, spawn the grader **twice** (two independent subagents, same screenshots/inputs).
+2. Take the absolute difference in overall score between the two runs. That gap (typically 4–8) is your **noise floor** for this project. If you ran a 3-grader panel, use the spread (max − min) of the panel.
+3. A round's improvement only counts as **real** when it exceeds the noise floor. Record the noise floor in the summary so the user can see it.
+
+### The loop
+
+1. Grade (round 1 is done). Persist each aspect's **fine numeric score**, the **design-intent note**, and the round-1 report as `grade-report-round-1.html` so progress is auditable.
+2. Apply all fixes from the fix list (highest priority first). Keep a **changelog**: which files changed and which aspects each change targets.
+3. **Regrade as a delta, with a panel.** Spawn **2–3 fresh grader subagents** (independent context, to avoid self-confirmation bias) but give each one an anchored, diff-aware brief — not a blank-slate re-roll:
 
    ```
-   Task (general-purpose): Grade the <category> of the codebase at <repo path> using the grade skill.
-   Produce a report card. Return the final grade, the numeric score, and the fix list.
-   You have NO context from previous grading rounds — grade fresh from the rubric.
+   Task (general-purpose): Re-grade the <category> of the codebase at <repo path> using the grade skill.
+   This is a DELTA re-grade, not a fresh absolute grade.
+   - Read references/.grade-intent-<category>.md first. Treat everything listed there as
+     intentional/in-scope — do NOT score it down.
+   - Here are last round's per-aspect numeric scores: <paste the 6 numbers>.
+   - Here is the changelog of what changed this round: <paste changelog>.
+   For each aspect: HOLD last round's score unless the new screenshot/code shows a change
+   for that aspect. Only move a score when you can point to the specific changed thing that
+   justifies the move, and say what it was. Use the fine 0–100 scale.
+   Return the 6 fine per-aspect scores and a one-line justification per aspect.
    ```
 
-   **Fallback if the Task tool isn't available** in this environment: re-read the relevant `references/rubric-*.md` from scratch, re-run the detection/screenshot/inspection steps from raw output (don't reuse prior screenshots or notes), and grade against the rubric as if seeing the project for the first time. Note in the summary that the regrade was in-context rather than a fresh subagent.
+   **Fallback if the Task tool isn't available** in this environment: re-read the relevant `references/rubric-*.md` and the design-intent note from scratch, re-run the detection/screenshot/inspection steps from raw output (don't reuse prior screenshots or notes), then apply the same delta discipline yourself — hold each prior per-aspect score unless the new evidence shows a change. Note in the summary that the regrade was in-context rather than a fresh panel, which widens the noise floor.
 
-4. Save round N's report as `grade-report-round-<N>.html`. Compare scores. Stop if:
-   - You've hit the max rounds (5 by default, or N if specified)
-   - The score moved less than 3 points from the previous round (plateau)
-   - The score went down (regression — flag this clearly and stop)
+4. **Reconcile the panel.** For each aspect, take the **median** of the panel's scores (median resists a single outlier rater). The round's overall score is the average of the 6 reconciled aspect scores. Save round N's report as `grade-report-round-<N>.html`.
+5. **Decide whether to continue or stop.** Compare the reconciled overall score to the prior round:
+   - **Improvement > noise floor** → real progress, continue.
+   - **Improvement ≤ noise floor** → a stall; this is the plateau signal. Stop only after **two consecutive** sub-noise-floor rounds (one flat round can be noise).
+   - **Apparent regression:** do **not** report "got worse" on a single round, and **never** report a regression when the only diffs this round were verified improvements (cross-check the changelog — if nothing got worse on disk, a lower number is the grader, not the app). Require a regression to **persist for two consecutive rounds** and to correspond to an actual change in the changelog before reporting it. If it persists and is real, flag it and revert the offending change.
+   - **Max rounds reached** (5 by default, or N).
 
-5. After the final round, generate a **summary report** showing:
-   - Score progression across all rounds (line chart or table)
-   - Final grade vs starting grade
-   - What changed in each round
+6. After the final round, generate a **summary report** showing:
+   - Score progression across all rounds (line chart or table), using the **reconciled fine scores**.
+   - The **noise floor**, drawn as a band around the line, so a flat-but-jittery run reads as flat — not as improvement or regression.
+   - Final grade vs starting grade, and which changes drove the real (above-noise) gains.
+   - What changed in each round (from the changelog).
 
 Save the loop summary to `grade-loop-summary-<timestamp>.html` and open it.
+
+> **Honesty rule for the loop:** the number you report is a noisy estimate, not a verdict. When the round-over-round move is inside the noise floor, say "flat (within measurement noise)" — do not narrate it as a rise or a drop. The point of the panel + anchors + noise floor is to stop the loop from inventing a trend that the measurement can't support.
 
 ## Rubric files
 
@@ -249,18 +287,22 @@ It checks that `SKILL.md` frontmatter is valid, the template and all four rubric
 
 ## Scoring scale
 
-All aspects use the same letter grades:
-- **A**: Exceptional. Production-quality with polish.
-- **B**: Solid. Real product, minor issues.
-- **C**: Functional. Works but rough.
-- **D**: Weak. Significant problems.
-- **F**: Broken or missing.
+**Score each aspect on a fine 0–100 scale — that number is the measurement.** Letters are a display rollup derived from the number, never the other way around. Do not snap aspect scores to band midpoints (95/82/73/63/45); those are only fallbacks for the band's *center*, and using them as the actual scores is what makes real improvements quantize to zero in the loop.
 
-Numeric conversion for averaging: A=95, B=82, C=73, D=63, F=45.
+Number → letter bands:
+- **A (90–100)**: Exceptional. Production-quality with polish.
+- **B (80–89)**: Solid. Real product, minor issues.
+- **C (70–79)**: Functional. Works but rough.
+- **D (60–69)**: Weak. Significant problems.
+- **F (<60)**: Broken or missing.
 
-The category score = average of its 6 aspect numeric scores, rounded to the nearest integer. The category letter grade is derived from: 90+ = A, 78+ = B, 68+ = C, 58+ = D, else F.
+The category score = average of its 6 aspect fine scores, rounded to the nearest integer. The category letter is read off the same bands above.
 
 For `everything`, the overall GPA uses: A=4.0, B=3.0, C=2.0, D=1.0, F=0.0, averaged across the four category grades.
+
+### Calibration anchors (keeps grades stable across rounds)
+
+A cold grader drifts because "B" is just prose ("good type with minor inconsistencies"). Pin it to *this project*. On the first grade, for each aspect write a one-line **anchor** describing what the current state looks like at its assigned score — e.g. *"Typography = 76: consistent scale, but the settings page mixes two body sizes."* Save these alongside the design-intent note (`references/.grade-intent-<category>.md`). Every later grade reads the anchors and scores **relative to them** ("is this better or worse than the pinned 76 example?") instead of redrawing the boundary from scratch. This is what keeps the same unchanged screen from drifting a full letter between raters.
 
 ## Tone and honesty
 

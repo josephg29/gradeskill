@@ -25,8 +25,23 @@ follows [Semantic Versioning](https://semver.org/).
   and confirmed port rather than hardcoded `npm run dev` / port 3000.
 - Loop mode saves each round as `grade-report-round-N.html` and documents a
   fresh-regrade fallback when the Task tool is unavailable.
+- **Aspects are now scored on a fine 0–100 scale internally** (letters are a
+  display rollup), so real improvements no longer quantize to zero against
+  letter-band stand-ins (95/82/73/63/45).
 
 ### Fixed
+- **Loop mode reported false regressions** ("80→74") when a stricter cold grader,
+  not the app, moved the number. The loop is now noise-aware:
+  - Regrades as a **delta** anchored to the prior round's per-aspect scores and a
+    per-project **design-intent note**, instead of an independent absolute re-roll.
+  - Runs a **2–3 grader panel** per round and takes the per-aspect **median**.
+  - Measures the grader's **noise floor** (grade an unchanged build twice) and only
+    counts improvement/regression that clears it.
+  - Requires a regression to **persist two rounds** and match a real changelog diff;
+    never reports "got worse" when the only diffs are verified improvements.
+  - Replaces the noise-activated `< 3 points` plateau trigger with a
+    two-consecutive-sub-noise-floor-rounds stop.
+  - Adds **calibration anchors** so cold graders stop redrawing letter boundaries.
 - Stale `codebase-grader` references left over from the rename to `grade`
   (README install path, report template footer, sample report footer, loop
   subagent prompt).

@@ -57,6 +57,13 @@ Run the grading process for the requested category. Each category has its own ap
 
 For `everything`, run all four categories. Combine into a single report with an overall GPA at the top.
 
+**For every category, grade each of the 6 aspects individually.** For each aspect you must produce:
+1. A **letter grade** (A/B/C/D/F)
+2. A **"Good:"** note — 1–3 sentences on what specifically worked well
+3. An **"Improve:"** note — 1–3 sentences on what specifically needs work, with file names or screen names
+
+The overall category grade is derived from the 6 aspect grades (A=95, B=82, C=73, D=63, F=45, averaged).
+
 ### Grading UI (looks)
 
 UI grading is purely visual. **You must take screenshots of the actual rendered product** — do not grade from looking at JSX or CSS alone.
@@ -97,7 +104,8 @@ UI grading is purely visual. **You must take screenshots of the actual rendered 
 
 4. If the app has multiple routes (dashboard, settings, etc.), grab screenshots of each major page.
 
-**Grade against the UI rubric** in `references/rubric-ui.md`. Read the screenshots using your vision capability and score each dimension.
+**Grade each of the 6 UI aspects** from `references/rubric-ui.md` using your vision capability on the screenshots:
+Visual Hierarchy · Typography · Color & Contrast · Spacing & Layout · Consistency · Polish & Detail
 
 ### Grading Backend
 
@@ -107,20 +115,17 @@ Backend grading is from code inspection. Look at:
 - Middleware, auth logic, environment config
 - Error handling patterns across endpoints
 
-Use Glob and Grep to find these. Read the key files. Score against `references/rubric-backend.md`.
+Use Glob and Grep to find these. Read the key files.
+
+**Grade each of the 6 Backend aspects** from `references/rubric-backend.md`:
+API Design · Error Handling · Data Model · Security · Code Organization · Performance
 
 ### Grading Code
 
-Code grading is structural. Walk the entire repo (excluding `node_modules`, `dist`, `build`, `.next`, etc.):
-- File and folder organization
-- Naming conventions (consistency, clarity)
-- Code duplication (search for repeated patterns)
-- File size and complexity (flag files over 500 lines)
-- Comments and documentation
-- Test coverage (is there a `tests/` or `*.test.*` files?)
-- Dead code, commented-out blocks, TODOs
+Code grading is structural. Walk the entire repo (excluding `node_modules`, `dist`, `build`, `.next`, etc.). Use `wc -l`, grep, and find to measure before reading.
 
-Score against `references/rubric-code.md`.
+**Grade each of the 6 Code aspects** from `references/rubric-code.md`:
+File & Folder Structure · Naming · Duplication · Complexity · Hygiene · Testing
 
 ### Grading UX
 
@@ -148,19 +153,20 @@ UX grading requires **actually using the product**. This is the most involved ca
      const page = await browser.newPage();
      const results = { flows: [] };
      
-     // Flow 1: Landing → primary action
      const start = Date.now();
      await page.goto('http://localhost:3000');
      await page.screenshot({ path: '/tmp/ux-1-landing.png' });
-     // ... attempt the flow, log what happens
-     results.flows.push({ name: 'landing_to_signup', duration_ms: Date.now() - start, /* ... */ });
+     results.flows.push({ name: 'landing_to_signup', duration_ms: Date.now() - start });
      
      console.log(JSON.stringify(results, null, 2));
      await browser.close();
    })();
    ```
 
-4. Run the script. Inspect the screenshots and results. Score against `references/rubric-ux.md`.
+4. Run the script. Inspect the screenshots and results.
+
+**Grade each of the 6 UX aspects** from `references/rubric-ux.md`:
+First Impression & Orientation · Task Flow Clarity · Friction · Feedback & State · Discoverability · Error Recovery & Edge Cases
 
 ## Step 3: Compose the report
 
@@ -168,10 +174,11 @@ Read the HTML template at `assets/report-template.html`. Fill it in with:
 
 - Overall grade and score (or GPA if `everything`)
 - Per-category grade and score
-- For each category, three sections:
-  - **What was good** — 3-6 bullets of strengths
-  - **What wasn't** — 3-6 bullets of weaknesses (be specific, reference actual files/screens)
-  - **Fixes** — a prioritized, numbered list of changes to make, ordered by impact
+- For each category, a grid of 6 aspect cards, each showing:
+  - The aspect name and its letter grade
+  - **Good:** 1–3 sentences on what worked
+  - **Improve:** 1–3 sentences on what needs work (specific, with file/screen references)
+- After the aspect grid, a prioritized **Fixes** list — numbered, ordered by impact
 
 Write the filled report to `grade-report-<timestamp>.html` in the repo root. Open it:
 
@@ -232,14 +239,18 @@ Read the relevant rubric file at the start of each grading run. Do not grade fro
 
 ## Scoring scale
 
-All categories use the same scale:
-- **A** (90-100): Exceptional. Production-quality with polish.
-- **B** (80-89): Solid. Real product, minor issues.
-- **C** (70-79): Functional. Works but rough.
-- **D** (60-69): Weak. Significant problems.
-- **F** (<60): Broken or incomplete.
+All aspects use the same letter grades:
+- **A**: Exceptional. Production-quality with polish.
+- **B**: Solid. Real product, minor issues.
+- **C**: Functional. Works but rough.
+- **D**: Weak. Significant problems.
+- **F**: Broken or missing.
 
-For `everything`, compute GPA: A=4.0, B=3.0, C=2.0, D=1.0, F=0.0, averaged across the four categories.
+Numeric conversion for averaging: A=95, B=82, C=73, D=63, F=45.
+
+The category score = average of its 6 aspect numeric scores, rounded to the nearest integer. The category letter grade is derived from: 90+ = A, 78+ = B, 68+ = C, 58+ = D, else F.
+
+For `everything`, the overall GPA uses: A=4.0, B=3.0, C=2.0, D=1.0, F=0.0, averaged across the four category grades.
 
 ## Tone and honesty
 

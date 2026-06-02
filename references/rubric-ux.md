@@ -2,28 +2,32 @@
 
 Grade the actual experience of using the product. **You must use the product before grading** — run flows in Playwright, click around, attempt the core actions. Do NOT grade UX from looking at code alone.
 
-## Dimensions (each scored 0-100, then averaged)
+## 6 Aspects (each gets a letter grade A–F plus good/improve notes)
 
-### 1. First impression and orientation
+### 1. First Impression & Orientation
 - When you land on the home/start page, is it clear what the product does?
 - Is the primary action obvious within 5 seconds?
-- Is there a way to get started without reading documentation?
+- Can you get started without reading documentation?
 - Does the page load quickly (under 3 seconds to interactive)?
 
-**A:** Instantly clear what to do. Strong call-to-action. Loads fast.
-**C:** Eventually clear but takes work to figure out. Maybe a generic landing page.
-**F:** No idea what this is or what to do. Confusing entry.
+**A:** Instantly clear what to do. Strong call-to-action. Loads fast. Zero ambiguity.
+**B:** Clear within 10 seconds with a small moment of "what's this?"
+**C:** Eventually clear but takes work. Maybe a generic or vague landing page.
+**D:** Unclear purpose. Primary action buried or absent.
+**F:** No idea what this is or what to do. Confusing entry. Slow.
 
-### 2. Task flow clarity
-- Can you complete the core user task (the main thing the product does) without getting stuck?
+### 2. Task Flow Clarity
+- Can you complete the core user task without getting stuck?
 - Are steps in a logical order?
-- Is the path forward always clear (next button, next step indicator)?
+- Is the path forward always clear (next button, step indicators)?
 - Can you go back if you make a mistake?
-- Are there dead ends or pages with no obvious next step?
+- Are there dead ends — pages with no obvious next step?
 
-**A:** Smooth path through core tasks, never wondering what to do next.
-**C:** Tasks completable but with detours, occasional moments of "now what?"
-**F:** Dead ends, hidden steps, can't figure out how to complete the main action.
+**A:** Smooth path through core tasks. Never wondering what to do next.
+**B:** Core flow works with one or two moments of mild confusion.
+**C:** Tasks completable but with detours. Occasional "now what?" moments.
+**D:** Significant confusion mid-flow. Back navigation broken or inconsistent.
+**F:** Dead ends. Hidden steps. Can't figure out how to complete the main action.
 
 ### 3. Friction
 - How many clicks to complete the core task?
@@ -32,55 +36,51 @@ Grade the actual experience of using the product. **You must use the product bef
 - Do you have to enter the same data twice?
 - Are there modals or overlays interrupting flow?
 
-Count clicks. Note repeated inputs. Note interruptions.
+Count actual clicks. Note repeated inputs. Note interruptions.
 
-**A:** Minimum viable steps to get value. No unnecessary friction.
+**A:** Minimum viable steps to get value. No unnecessary friction at all.
+**B:** Mostly smooth with one unnecessary step or confirmation.
 **C:** Some bloat — extra confirmation modals, redundant fields.
+**D:** Noticeably high friction. Several unnecessary steps or repeated data entry.
 **F:** 15 clicks to do a 2-click task. Constant interruptions.
 
-### 4. Feedback and state
+### 4. Feedback & State
 - When you click something, do you get visual feedback (loading spinner, state change)?
 - When an action completes, is there success feedback?
 - When something fails, is the error message clear and actionable?
 - Are loading states designed (not just frozen UI)?
 - Are empty states helpful (not just blank screens)?
 
-**A:** Every action has clear feedback. Errors tell you exactly what to do.
-**C:** Most actions give feedback, but errors are generic ("something went wrong").
-**F:** Click and pray. No feedback. Errors are stack traces or silent.
+**A:** Every action has clear feedback. Errors tell you exactly what to do. Empty states are helpful.
+**B:** Most actions give feedback. One or two gaps in loading/empty state handling.
+**C:** Most actions give feedback but errors are generic ("something went wrong").
+**D:** Feedback is inconsistent. Many actions feel unacknowledged. Errors are vague.
+**F:** Click and pray. No feedback. Errors are stack traces or silently fail.
 
 ### 5. Discoverability
 - Can you find secondary features without a tutorial?
 - Are settings, profile, and key navigation clearly labeled?
 - Are icons paired with labels (not icon-only)?
-- Are advanced features available without being in the way?
+- Are advanced features accessible without being in the way?
 
-**A:** Everything findable through the UI alone. No hunting.
-**C:** Main features discoverable, advanced stuff hidden in unintuitive places.
+**A:** Everything findable through the UI alone. No hunting required.
+**B:** Main features easy to find. One or two secondary features require guessing.
+**C:** Main features discoverable. Advanced features hidden in unintuitive places.
+**D:** Even core features take effort to find. Navigation labels unclear or missing.
 **F:** Need to read docs to find anything beyond the main flow.
 
-### 6. Error recovery and edge cases
-- What happens if you submit a form with bad data? (Try it.)
-- What happens if you go to a route that doesn't exist? (Try `/asdf123`.)
-- What happens if you refresh mid-flow? (Try it.)
-- What happens if you don't fill in required fields?
+### 6. Error Recovery & Edge Cases
+Test each of these manually — don't guess:
+- Submit a form with bad/empty data. Does it tell you what's wrong?
+- Go to a route that doesn't exist (`/asdf123`). What happens?
+- Refresh mid-flow. Does state survive?
+- Submit without filling required fields.
 
-Test these. Don't just hope they work.
-
-**A:** Graceful recovery from all tested edge cases. Helpful error states.
-**C:** Some cases handled, some show generic errors or break.
-**F:** Bad inputs crash the app, 404s show stack traces, no recovery.
-
-### 7. Accessibility basics
-- Are interactive elements keyboard-reachable (tab through them)?
-- Are focus states visible?
-- Do form fields have labels (not just placeholders)?
-- Is text contrast sufficient?
-- Are images alt-tagged (check the DOM)?
-
-**A:** Keyboard navigable, visible focus, proper labels, good contrast.
-**C:** Mostly works with keyboard but focus states are inconsistent.
-**F:** Mouse-only, no focus styles, placeholder-as-label, low contrast.
+**A:** Graceful recovery from all tested edge cases. Helpful, specific error states.
+**B:** Most cases handled well. One or two show generic errors.
+**C:** Some cases handled, some show generic errors, one may break partially.
+**D:** Several edge cases handled poorly. Some show raw errors or break silently.
+**F:** Bad inputs crash the app. 404s show stack traces. No recovery path.
 
 ## How to test
 
@@ -93,9 +93,7 @@ Before scoring, run a Playwright script that:
 5. **Tests keyboard nav** — tab through, check focus
 6. **Records timings and click counts** for each step
 
-Log results to a JSON file. Screenshot at each step.
-
-Example skeleton:
+Example skeleton (`/tmp/ux-test.js`):
 ```javascript
 const { chromium } = require('playwright');
 (async () => {
@@ -104,21 +102,13 @@ const { chromium } = require('playwright');
   const page = await ctx.newPage();
   const results = { flows: [], edge_cases: [], timings: {} };
   
-  // 1. Landing
   const t0 = Date.now();
   await page.goto('http://localhost:3000', { waitUntil: 'networkidle' });
   results.timings.landing = Date.now() - t0;
   await page.screenshot({ path: '/tmp/ux-01-landing.png' });
   
-  // 2. Primary CTA — find the most prominent button
-  // (You'll need to read the page and decide what the primary action is)
-  
-  // 3. Edge case: 404
   await page.goto('http://localhost:3000/this-route-does-not-exist');
   await page.screenshot({ path: '/tmp/ux-02-404.png' });
-  
-  // 4. Edge case: empty form submit
-  // ...
   
   console.log(JSON.stringify(results, null, 2));
   await browser.close();
@@ -127,8 +117,11 @@ const { chromium } = require('playwright');
 
 ## How to score
 
-Average the seven dimensions. Round to the nearest integer.
+For each of the 6 aspects:
+1. Assign a letter grade (A/B/C/D/F) based on what you observe while using the product.
+2. Write 1–3 sentences on **what was good** — specific flows or behaviors that worked well.
+3. Write 1–3 sentences on **what needs improving** — reference specific flows ("the signup flow takes 6 clicks; the email confirmation modal is the main offender").
 
-For the "what was good / what wasn't / fixes" sections, reference specific flows ("the signup flow takes 6 clicks where 3 would suffice — the email confirmation modal is the main offender").
+Derive numeric score for averaging: A=95, B=82, C=73, D=63, F=45. Average the six numeric scores for the overall UX grade.
 
-If the product won't run (build errors, can't start dev server), set UX score to 0 and note in the report. Cannot grade UX without a running product.
+If the product won't run (build errors, can't start dev server), set UX score to 0 and note it in the report. Cannot grade UX without a running product.
